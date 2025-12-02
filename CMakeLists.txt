@@ -8,6 +8,7 @@ include(ExternalProject)
 
 option(PANGOLIN_USE_GUI "Build 3rdparty pangolin package with GUI support" ON)
 option(PANGOLIN_USE_VIDEO "Build 3rdparty pangolin package with Video support" ON)
+option(PANGOLIN_USE_FFMPEG "Build pangolin with ffmpeg backend (broken on newer ffmpeg; use only if you have an older ffmpeg toolchain)" OFF)
 option(PANGOLIN_USE_OCULUS "Build 3rdparty pangolin package with Oculus support" OFF)
 option(PANGOLIN_USE_VARS "Build 3rdparty pangolin package with Vars support" ON)
 
@@ -26,6 +27,12 @@ endif()
 if (PANGOLIN_USE_VIDEO)
   list(APPEND PANGOLIN_CMAKE_OPTIONS "-DBUILD_PANGOLIN_VIDEO:BOOL=ON")
   find_package(DepthSense)
+  if (PANGOLIN_USE_FFMPEG)
+    list(APPEND PANGOLIN_CMAKE_OPTIONS "-DBUILD_PANGOLIN_FFMPEG:BOOL=ON")
+  else()
+    # Pangolin 0.6 uses deprecated ffmpeg APIs that no longer compile with current ffmpeg releases.
+    list(APPEND PANGOLIN_CMAKE_OPTIONS "-DBUILD_PANGOLIN_FFMPEG:BOOL=OFF")
+  endif()
 else()
   list(APPEND PANGOLIN_CMAKE_OPTIONS "-DBUILD_PANGOLIN_VIDEO:BOOL=OFF")
 endif()
@@ -49,15 +56,16 @@ endif()
 file(MAKE_DIRECTORY ${CATKIN_DEVEL_PREFIX}/include)
 set(CATKIN_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
+set(Pangolin_Version 0.6)
 ExternalProject_Add(pangolin_EXTERNAL
-  GIT_REPOSITORY https://github.com/stevenlovegrove/Pangolin
-  GIT_TAG b2346d6ba383342c835ef72e43abc3478434d16c
+  URL https://github.com/stevenlovegrove/Pangolin/archive/v${Pangolin_Version}.zip
   UPDATE_COMMAND ""
   CMAKE_ARGS 
     -DBUILD_SHARED_LIBS:BOOL=ON
     ${PANGOLIN_CMAKE_OPTIONS}
     -DBUILD_EXAMPLES:BOOL=OFF
     -DBUILD_TESTS:BOOL=OFF
+    -DCMAKE_CXX_FLAGS=-include\ cstdint\ -include\ limits
   BUILD_COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=${CATKIN_DEVEL_PREFIX} . && make install -j 8
   INSTALL_COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=${CATKIN_INSTALL_PREFIX} . && make install -j 8
 )
